@@ -50,7 +50,7 @@ For first training stage, prepare `occluded` (augmented images), `ori_img` (orig
 Instead of skin mask, we use BiseNet, face parsing network. The codes and weights were modified and re-trained from [this code](https://github.com/zllrunning/face-parsing.PyTorch).
 
 + Download [weights of face parsing networks](https://drive.google.com/file/d/11yOlWD1fnrzJ8yAYIJJT96VFsRzSpRdh/view?usp=sharing) to faceParsing folder.
-+ Download [weights of face recognition networks](https://drive.google.com/file/d/1zkadw03OCxAbwJMTmP8436wpLrrK7ht9/view?usp=sharing) to saved_models folder.
++ Download [weights of baseline 3D networks](https://drive.google.com/file/d/1H38pe61Zqz-7zVkYDrPQkfcosmhZp23n/view?usp=sharing) to mmRegressor/network folder.
 
 **Train occlusion-robust 3D face model**
 
