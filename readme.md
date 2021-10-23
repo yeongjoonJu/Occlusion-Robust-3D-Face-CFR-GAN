@@ -23,7 +23,7 @@ ____
 + Install the [Pytorch3D](https://github.com/facebookresearch/pytorch3d)==0.2.5
 
 + [Basel Face Model 2009 (BFM09)](https://faces.dmi.unibas.ch/bfm/main.php?nav=1-0&id=basel_face_model) and [Expression Basis (transferred from Facewarehouse by Guo et al.)](https://github.com/Juyong/3DFace). The original BFM09 model does not handle expression variations so extra expression basis are needed.
-  + However, we made BFM/BFM_model_80.mat (Dimension of id coef and tex coef is 80)
+  + However, we made [BFM_model_80.mat](https://drive.google.com/file/d/1Y00xRDLKhx3oWJasdy-NdBp-wSh_uW0C/view?usp=sharing) (Dimension of id coef and tex coef is 80). Download and move mmRegressor/BFM folder.
 
 ### Usage
 
@@ -63,6 +63,8 @@ To show logs
 ~~~bash
 tensorboard --logdir=logs_stage1 --bind_all --reload_multifile True
 ~~~
+
+#### Second Fine-tuning Stage:
 
 
 
