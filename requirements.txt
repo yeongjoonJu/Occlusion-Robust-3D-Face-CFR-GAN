@@ -3,6 +3,5 @@ torchvision
 opencv-python
 pillow
 scikit-image
-scipy
 tensorboard
 tqdm
