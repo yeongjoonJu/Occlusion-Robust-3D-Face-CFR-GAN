@@ -45,6 +45,16 @@ python create_train_stage1.py --img_path [your image folder] --lmk_path [your la
 
 For first training stage, prepare `occluded` (augmented images), `ori_img` (original images), `landmarks` (3D landmarks) folders or modify folder name in `train_stage1.py`.
 
+**\*\*You must align images with align.py\*\***
+
+meta file format is:
+
+~~~bash
+[filename] left eye x left eye y right eye x right eye y nose x nose y left mouth x left mouth y ...
+~~~
+
+You can use MTCNN or RetinaFace
+
 #### First Fine-tuning Stage:
 
 Instead of skin mask, we use BiseNet, face parsing network. The codes and weights were modified and re-trained from [this code](https://github.com/zllrunning/face-parsing.PyTorch).
@@ -66,7 +76,18 @@ tensorboard --logdir=logs_stage1 --bind_all --reload_multifile True
 
 #### Second Fine-tuning Stage:
 
++ You can download MaskedFaceNet dataset in [here](https://github.com/cabani/MaskedFace-Net).
++ You can download FFHQ dataset in [here](https://github.com/NVlabs/ffhq-dataset).
 
+**Train**
 
-*Modifying this repo*
+~~~bash
+python train_stage2.py
+~~~
+
+To show logs
+
+~~~bash
+tensorboard --logdir=logs_stage2 --bind_all --reload_multifile True
+~~~
 

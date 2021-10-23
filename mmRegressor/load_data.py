@@ -11,19 +11,27 @@ class BFM():
         self.to_torch(gpu_id)
 
     def to_torch(self, gpu_id):
-        #self.model = chj_file.load_np_mats(self.fmodel)
         self.model = loadmat(self.fmodel)
-        
-        self.meanshape = torch.from_numpy(self.model['meanshape']).cuda(gpu_id).squeeze(0)  # mean face shape
-        self.idBase = torch.from_numpy(self.model['idBase']).cuda(gpu_id)  # identity basis
-        self.exBase = torch.from_numpy(self.model['exBase']).type(torch.FloatTensor).cuda(gpu_id)  # expression basis
-        self.meantex = torch.from_numpy(self.model['meantex']).cuda(gpu_id).squeeze(0)  # mean face texture
-        self.texBase = torch.from_numpy(self.model['texBase']).cuda(gpu_id)  # texture basis
-        self.skin_mask = torch.from_numpy(self.model['skinmask']).cuda(gpu_id)
+
+        if gpu_id != -1:
+            self.meanshape = torch.from_numpy(self.model['meanshape']).cuda(gpu_id).squeeze(0)  # mean face shape
+            self.idBase = torch.from_numpy(self.model['idBase']).cuda(gpu_id)  # identity basis
+            self.exBase = torch.from_numpy(self.model['exBase']).type(torch.FloatTensor).cuda(gpu_id)  # expression basis
+            self.meantex = torch.from_numpy(self.model['meantex']).cuda(gpu_id).squeeze(0)  # mean face texture
+            self.texBase = torch.from_numpy(self.model['texBase']).cuda(gpu_id)  # texture basis
+            self.skin_mask = torch.from_numpy(self.model['skinmask']).cuda(gpu_id)
+        else:
+            self.meanshape = torch.from_numpy(self.model['meanshape']).squeeze(0)  # mean face shape
+            self.idBase = torch.from_numpy(self.model['idBase'])  # identity basis
+            self.exBase = torch.from_numpy(self.model['exBase']).type(torch.FloatTensor)  # expression basis
+            self.meantex = torch.from_numpy(self.model['meantex']).squeeze(0)  # mean face texture
+            self.texBase = torch.from_numpy(self.model['texBase'])  # texture basis
+            self.skin_mask = torch.from_numpy(self.model['skinmask'])
+    
         self.tri = self.model['tri']
         self.keypoints = self.model['keypoints'].reshape(-1)
         self.point_buf = self.model['point_buf']
-        
+    
 
     # load landmarks for standard face, which is used for image preprocessing
     def load_lm3d(self, fsimilarity_Lm3D_all_mat):
