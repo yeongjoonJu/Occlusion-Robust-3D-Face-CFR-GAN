@@ -140,7 +140,6 @@ class MaskedFaceDataset(Dataset):
     def __init__(self, mfd_path, ori_path, p=0.5):
         self.mfd_path = mfd_path
         self.ori_path = ori_path
-        # lp_path = '../hand_occluded_224/occluded'
         self.p = p
 
         self.transform = transforms.Compose([
@@ -181,7 +180,7 @@ class MaskedFaceDataset(Dataset):
         #         mf[:,y:y+h,x:x+w] = random_box[:,y:y+h,x:x+w]
         #         mf = torch.clamp(mf, 0.0, 1.0)
         name = os.path.basename(self.mfd_list[index]).split('_')[0]
-        ori = Image.open(os.path.join(self.ori_path, 'f'+name+'.jpg')).convert('RGB')
+        ori = Image.open(os.path.join(self.ori_path, name+'.jpg')).convert('RGB')
         ori = color_trans(ori)
         ori = self.transform(ori)
 

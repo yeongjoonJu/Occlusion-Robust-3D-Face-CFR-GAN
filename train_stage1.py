@@ -130,11 +130,9 @@ def validate(models, val_loader, epoch, args):
         for i, (occluded, lmk) in enumerate(val_loader):
             print('\rval %d...' % (i+1), end='')
             occluded = Variable(occluded.type(torch.cuda.FloatTensor)).cuda()
-            # img = Variable(img.type(torch.cuda.FloatTensor)).cuda()
             lmk = Variable(lmk.type(torch.cuda.FloatTensor)).cuda()
             coef = models['3D'].regress_3dmm(occluded[:,[2,1,0],...])
-            rendered, landmark = models['3D'].reconstruct(coef, test=True)
-            rendered = rendered[...,[2,1,0]].permute(0,3,1,2).contiguous()
+            _, landmark = models['3D'].reconstruct(coef, test=True)
             align_error += torch.mean(torch.abs(landmark - lmk))
 
         align_error /= len(val_loader)
@@ -195,7 +193,7 @@ def main_worker(gpu, ngpus_per_node, args):
     torch.cuda.set_device(args.gpu)
 
     # Load models
-    estimator3d = Estimator3D(is_cuda=True, batch_size=args.batch_size, model_path=args.checkpoints, test=False, back_white=False, device_id=args.gpu)
+    estimator3d = Estimator3D(is_cuda=True, batch_size=args.batch_size, model_path=args.checkpoint, test=False, back_white=False, device_id=args.gpu)
     estimator3d.regressor.cuda(args.gpu)
     parsing_net = BiSeNet(n_classes=19)
     parsing_net.cuda(args.gpu)
@@ -268,7 +266,7 @@ if __name__=='__main__':
     parser.add_argument('--val_data_path', required=True, type=str, help='path containing validation data folders')
     parser.add_argument('--flag', default=None, type=str, help='flag prepended to filenames')
     parser.add_argument('--save_path', default='saved_models', help='path to save checkpoints')
-    parser.add_argument('--chekcpoints', default=None, type=str, help='path to resume checkpoint')
+    parser.add_argument('--checkpoint', default=None, type=str, help='path to resume checkpoint')
 
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N')
     parser.add_argument('-j', '--workers', default=8, type=int, metavar='N',
