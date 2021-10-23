@@ -1,7 +1,7 @@
 import cv2, os
 import numpy as np
 import argparse
-from mmRegressor.preprocess_img import PreprocessNoMask
+from mmRegressor.preprocess_img import Preprocess
 from mmRegressor.load_data import BFM
 from PIL import Image
 
@@ -37,7 +37,7 @@ if __name__=='__main__':
         lmk = np.reshape(np.array(lmk), (5,2))
         img = Image.open(fname)
         try:
-            img, _ = PreprocessNoMask(img, lmk, lm3D, 224)
+            img, _ = Preprocess(img, lmk, lm3D, 224)
         except ValueError:
             fail_f.write(fname+'\n')
             continue
