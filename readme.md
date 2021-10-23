@@ -91,3 +91,10 @@ To show logs
 tensorboard --logdir=logs_stage2 --bind_all --reload_multifile True
 ~~~
 
+#### Evaluation
+
+~~~bash
+python evaluation/benchmark_nme_aflw_2000.py
+~~~
+
+If you would like to evaluate your results, please refer `evaluation/estimate_aflw2000.py`
