@@ -4,9 +4,7 @@ Code for Occlusion Robust 3D Face Reconstruction in **"Complete Face Recovery GA
 
 > [Yeong-Joon Ju](https://github.com/yeongjoonJu), Gun-Hee Lee, [Jung-Ho Hong](https://github.com/KUMartin77?tab=repositories), and Seong-Whan Lee
 
-# I'm still editing this repo!
-
-Inference will be updated.
+<img src="./data/figure1_3d.png" style="zoom:60%;" />
 
 **Abstract**
 
@@ -14,9 +12,13 @@ We propose our novel two stage fine-tuning strategy for occlusion-robust 3D face
 
 Our baseline is [Accurate 3D Face Reconstruction with Weakly-Supervised Learning: From Single Image to Image Set](https://github.com/microsoft/Deep3DFaceReconstruction) and we also referred this [code](https://github.com/changhongjian/Deep3DFaceReconstruction-pytorch). Note that we focus on alignments and colors for guidance of CFR-GAN in occluded facial images.
 
-### Requirements
+**Blended results**
 
-____
+<img src="./data/figure2_blend.png" style="zoom:60%;" />
+
+First row is baseline results and second row is our results.
+
+## Requirements
 
 + Python 3.7 or 3.8 can be used.
 
@@ -30,9 +32,7 @@ ____
   
   + However, we made [BFM_model_80.mat](https://drive.google.com/file/d/1Y00xRDLKhx3oWJasdy-NdBp-wSh_uW0C/view?usp=sharing) (Dimension of id coef and tex coef is 80). Download and move mmRegressor/BFM folder.
 
-### Inference
-
-____
+## Inference
 
 + Download [our trained weights](https://drive.google.com/file/d/1nX70o-IMWNU5RZ-fVN98S-eLU6ihJ65L/view?usp=sharing) in saved_models folder
 
@@ -40,15 +40,16 @@ For alignment, You can use MTCNN or RetinaFace but we recommend to use [RetinaFa
 
 ~~~bash
 git clone https://github.com/biubug6/Pytorch_Retinaface.git
+Download weights
 ~~~
 
+Estimate 3D faces from your images
 
+~~~bash
+python inference.py --img_path [your image path] --save_path [your save path] --model_path [WEIGHT PATH]
+~~~
 
-
-
-### Training with your dataset
-
-____
+## Training with your dataset
 
 <img src="data/app_occ_ex.png" style="zoom:60%;" />
 
@@ -80,7 +81,7 @@ You can use MTCNN or RetinaFace
 
 #### First Fine-tuning Stage:
 
-Instead of skin mask, we use BiseNet, face parsing network. The codes and weights were modified and re-trained from [this code](https://github.com/zllrunning/face-parsing.PyTorch).
+Instead of skin mask, we use BiseNet, face parsing network. The codes and weights were modified and re-trained from [this code](https://github.com/zllrunning/face-parsing.PyTorch). <u>If you want to get more clear textures, use a skin detector of baseline.</u>
 
 + Download [weights of face parsing networks](https://drive.google.com/file/d/11yOlWD1fnrzJ8yAYIJJT96VFsRzSpRdh/view?usp=sharing) to faceParsing folder.
 + Download [weights of baseline 3D networks](https://drive.google.com/file/d/1H38pe61Zqz-7zVkYDrPQkfcosmhZp23n/view?usp=sharing) to mmRegressor/network folder.

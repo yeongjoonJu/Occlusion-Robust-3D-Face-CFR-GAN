@@ -1,21 +1,16 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
+from ctypes import ArgumentError
 import os ; import sys 
 os.chdir( os.path.split( os.path.realpath( sys.argv[0] ) )[0] ) 
-
-from faceParsing.model import BiSeNet
 
 from mmRegressor.network.resnet50_task import *
 from mmRegressor.preprocess_img import Preprocess
 from mmRegressor.load_data import *
 from mmRegressor.reconstruct_mesh import Reconstruction, Compute_rotation_matrix, _need_const
-import time
 
 import torch
-import glob
 import numpy as np
-from PIL import Image
-from tqdm import tqdm
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import cv2
@@ -30,13 +25,22 @@ from pytorch3d.renderer import (
     BlendParams,
     MeshRenderer, MeshRasterizer
 )
-from pytorch3d.renderer.mesh.rasterize_meshes import rasterize_meshes
+
+# Retina Face
+if os.path.exists('Pytorch_Retinaface'):
+    from Pytorch_Retinaface.layers.functions.prior_box import PriorBox
+    from Pytorch_Retinaface.utils.nms.py_cpu_nms import py_cpu_nms
+    from Pytorch_Retinaface.utils.box_utils import decode, decode_landm
 
 class Estimator3D(object):
-    def __init__(self, is_cuda=True, batch_size=1, render_size=224, test=True, model_path=None, back_white=False, cuda_id=0):
+    def __init__(self, is_cuda=True, batch_size=1, render_size=224, test=True, model_path=None, back_white=False, cuda_id=0, det_net=None):
         self.is_cuda = is_cuda
         self.render_size = render_size
         self.cuda_id = cuda_id
+        # Network, cfg
+        if det_net is not None:
+            self.det_net = det_net[0]
+            self.det_cfg = det_net[1]
 
         # load models
         if model_path is None:
@@ -142,3 +146,93 @@ class Estimator3D(object):
         gamma_loss = torch.mean(torch.square(gamma - gamma_mean))
 
         return rendered, landmarks_2d, ref_loss, gamma_loss
+
+
+    def estimate_and_reconstruct(self, img):
+        coef = self.regress_3dmm(img)
+        return self.reconstruct(coef, test=True)
+
+    
+    def estimate_five_landmarks(self, img):
+        # Detect and align
+        img_raw = np.array(img)
+        ori_h, ori_w, _ = img_raw.shape
+        img = np.float32(cv2.resize(img_raw, (320, 320), cv2.INTER_CUBIC))
+        im_height, im_width, _ = img.shape
+        scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
+        img -= (104, 117, 123)
+        img = img.transpose(2,0,1)
+        img = torch.from_numpy(img).unsqueeze(0)
+        img = img.to(self.cuda_id)
+        scale = scale.to(self.cuda_id)
+        
+        loc, conf, landms = self.det_net(img)
+        priorbox = PriorBox(self.det_cfg, image_size=(im_height, im_width))
+        priors = priorbox.forward()
+        priors = priors.to(self.cuda_id)
+        prior_data = priors.data
+        boxes = decode(loc.data.squeeze(0), prior_data, self.det_cfg['variance'])
+        boxes = boxes * scale
+        boxes = boxes.cpu().numpy()
+        scores = conf.squeeze(0).data.cpu().numpy()[:, 1]
+        landms = decode_landm(landms.data.squeeze(0), prior_data, self.det_cfg['variance'])
+        scale1 = torch.Tensor([img.shape[3], img.shape[2], img.shape[3], img.shape[2],
+                            img.shape[3], img.shape[2], img.shape[3], img.shape[2],
+                            img.shape[3], img.shape[2]])
+        scale1 = scale1.to(self.cuda_id)
+        landms = landms * scale1
+        landms = landms.cpu().numpy()
+
+        # ignore low scores
+        inds = np.where(scores > 0.1)[0]
+        boxes = boxes[inds]
+        landms = landms[inds]
+        scores = scores[inds]
+
+        # keep top-K before NMS
+        # order = scores.argsort()[::-1][:args.top_k]
+        order = scores.argsort()[::-1]
+        boxes = boxes[order]
+        landms = landms[order]
+        scores = scores[order]
+
+        # do NMS
+        dets = np.hstack((boxes, scores[:, np.newaxis])).astype(np.float32, copy=False)
+        keep = py_cpu_nms(dets, 0.4)
+        dets = dets[keep, :]
+        landms = landms[keep]
+        landm = np.array(landms[0])
+        
+        landm = np.reshape(landm, (-1, 2))
+        landm[:,0] *= ori_w/320
+        landm[:,1] *= ori_h/320
+
+        return landm
+
+
+    def align_convert2tensor(self, img_list, aligned=False):
+        if not aligned and self.det_net is None:
+            raise ArgumentError('Detection network is None!')
+
+        input_img = []
+        for filename in img_list:
+            if aligned:
+                img = cv2.imread(filename)
+                if img.shape[0]!= self.render_size:
+                    img = cv2.resize(img, (self.render_size,self.render_size), cv2.INTER_AREA)
+                if img.shape[2]==4:
+                    img = img[...,:3]
+            else:
+                img = Image.open(filename)
+                lm = self.estimate_five_landmarks(img)
+                img, _ = Preprocess(img, lm, self.lm3D, render_size=self.render_size)
+                img = img[0].copy()
+            
+            img = self.to_tensor(img)
+            input_img.append(img.unsqueeze(0))
+
+        input_img = torch.cat(input_img)
+        if self.is_cuda:
+            input_img = input_img.type(torch.FloatTensor).cuda(self.cuda_id)
+        
+        return input_img

@@ -1,4 +1,6 @@
-import os, glob, sys, cv2
+#!/usr/bin/python
+# -*- encoding: utf-8 -*-
+import os, glob, sys
 import torch
 import argparse
 from renderer import Estimator3D
@@ -10,8 +12,6 @@ from torch.autograd import Variable
 import torch.autograd as autograd
 from torchvision.utils import save_image, make_grid
 
-from senet import FeatureMatchingLoss
-from faceParsing.model import BiSeNet
 from mmRegressor.network.resnet50_task import resnet50_use
 
 
