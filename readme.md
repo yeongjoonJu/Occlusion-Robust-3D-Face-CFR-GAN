@@ -4,7 +4,11 @@ Code for Occlusion Robust 3D Face Reconstruction in **"Complete Face Recovery GA
 
 > [Yeong-Joon Ju](https://github.com/yeongjoonJu), Gun-Hee Lee, [Jung-Ho Hong](https://github.com/KUMartin77?tab=repositories), and Seong-Whan Lee
 
-<img src="data/app_occ_ex.png" style="zoom:60%;" />
+# I'm still editing this repo!
+
+Inference will be updated.
+
+**Abstract**
 
 We propose our novel two stage fine-tuning strategy for occlusion-robust 3D face reconstruction. The training method is split into two training stages due to the difficulty of initial training for extreme occlusions. We fine-tune the **baseline** with our newly created datasets in the first stage and with teacher-student learning method in the second stage.
 
@@ -23,11 +27,30 @@ ____
 + Install the [Pytorch3D](https://github.com/facebookresearch/pytorch3d)==0.2.5
 
 + [Basel Face Model 2009 (BFM09)](https://faces.dmi.unibas.ch/bfm/main.php?nav=1-0&id=basel_face_model) and [Expression Basis (transferred from Facewarehouse by Guo et al.)](https://github.com/Juyong/3DFace). The original BFM09 model does not handle expression variations so extra expression basis are needed.
+  
   + However, we made [BFM_model_80.mat](https://drive.google.com/file/d/1Y00xRDLKhx3oWJasdy-NdBp-wSh_uW0C/view?usp=sharing) (Dimension of id coef and tex coef is 80). Download and move mmRegressor/BFM folder.
 
-### Usage
+### Inference
 
 ____
+
++ Download [our trained weights](https://drive.google.com/file/d/1nX70o-IMWNU5RZ-fVN98S-eLU6ihJ65L/view?usp=sharing) in saved_models folder
+
+For alignment, You can use MTCNN or RetinaFace but we recommend to use [RetinaFace](https://github.com/biubug6/Pytorch_Retinaface).
+
+~~~bash
+git clone https://github.com/biubug6/Pytorch_Retinaface.git
+~~~
+
+
+
+
+
+### Training with your dataset
+
+____
+
+<img src="data/app_occ_ex.png" style="zoom:60%;" />
 
 #### Preprocessing:
 
@@ -61,6 +84,7 @@ Instead of skin mask, we use BiseNet, face parsing network. The codes and weight
 
 + Download [weights of face parsing networks](https://drive.google.com/file/d/11yOlWD1fnrzJ8yAYIJJT96VFsRzSpRdh/view?usp=sharing) to faceParsing folder.
 + Download [weights of baseline 3D networks](https://drive.google.com/file/d/1H38pe61Zqz-7zVkYDrPQkfcosmhZp23n/view?usp=sharing) to mmRegressor/network folder.
++ Download [weights of face recognition networks](https://drive.google.com/file/d/1zkadw03OCxAbwJMTmP8436wpLrrK7ht9/view?usp=sharing) to saved_models folder. This network weight was specifically trained for stage1-training.
 
 **Train occlusion-robust 3D face model**
 
