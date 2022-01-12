@@ -24,29 +24,29 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torch.nn.parallel
 
+from tqdm import tqdm
 from faceParsing.model import BiSeNet
-
 from face_backbone import IR_SE_50
 
 
 logger = TrainStage1Logger('./logs_stage1')
 
 def train(models, criterions, optimizer, scheduler, train_loader, val_loader, epoch, args):
-    landmark_weight = torch.cat([torch.ones((1,28)),20*torch.ones((1,3)),torch.ones((1,6)),torch.ones((1,12))*5, torch.ones((1,11)), 20*torch.ones((1,8))], dim = 1).cuda()
+    landmark_weight = torch.cat([torch.ones((1,28)),20*torch.ones((1,3)),torch.ones((1,6)),torch.ones((1,12))*5, torch.ones((1,11)), 20*torch.ones((1,8))], dim = 1).cuda(args.gpu)
 
-    mean = torch.FloatTensor([0.485, 0.456, 0.406]).cuda().unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
-    std = torch.FloatTensor([0.229, 0.224, 0.225]).cuda().unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
-    mean_f = torch.FloatTensor([0.5, 0.5, 0.5]).cuda().unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
-    std_f = torch.FloatTensor([0.5, 0.5, 0.5]).cuda().unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
+    mean = torch.FloatTensor([0.485, 0.456, 0.406]).cuda(args.gpu).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
+    std = torch.FloatTensor([0.229, 0.224, 0.225]).cuda(args.gpu).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
+    mean_f = torch.FloatTensor([0.5, 0.5, 0.5]).cuda(args.gpu).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
+    std_f = torch.FloatTensor([0.5, 0.5, 0.5]).cuda(args.gpu).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
 
-    for i, (occluded, img, lmk, flag) in enumerate(train_loader):
+    for i, (occluded, img, lmk, flag) in tqdm(enumerate(train_loader)):
         optimizer.zero_grad()
         
         # Configure model input
-        occluded = Variable(occluded.type(torch.cuda.FloatTensor), requires_grad=False).cuda()
-        img = Variable(img.type(torch.cuda.FloatTensor), requires_grad=False).cuda()
-        lmk = Variable(lmk.type(torch.cuda.FloatTensor), requires_grad=False).cuda()
-        flag = Variable(flag.type(torch.cuda.FloatTensor), requires_grad=False).cuda()
+        occluded = Variable(occluded.type(torch.cuda.FloatTensor), requires_grad=False).cuda(args.gpu)
+        img = Variable(img.type(torch.cuda.FloatTensor), requires_grad=False).cuda(args.gpu)
+        lmk = Variable(lmk.type(torch.cuda.FloatTensor), requires_grad=False).cuda(args.gpu)
+        flag = Variable(flag.type(torch.cuda.FloatTensor), requires_grad=False).cuda(args.gpu)
 
         coef = models['3D'].regress_3dmm(occluded[:,[2,1,0],...])
         rendered, landmark, reg_loss, gamma_loss = models['3D'].reconstruct(coef)
@@ -65,7 +65,7 @@ def train(models, criterions, optimizer, scheduler, train_loader, val_loader, ep
         parsed = F.interpolate(parsed, (224,224))
         parsed = torch.argmax(parsed, dim=1, keepdim=True)
 
-        mask = torch.zeros_like(parsed, dtype=torch.float32).cuda()
+        mask = torch.zeros_like(parsed, dtype=torch.float32).cuda(args.gpu)
         # skin 1, nose 2, eye_glass 3, r_eye 4, l_eye 5, r_brow 6, l_brow 7, r_ear 8, l_ear 9,
         # inner_mouth 10, u_lip 11, l_lip 12, hair 13
         indices = ((parsed>=1).type(torch.BoolTensor) & (parsed<=7).type(torch.BoolTensor) & (parsed!=3).type(torch.BoolTensor)) \
@@ -74,7 +74,7 @@ def train(models, criterions, optimizer, scheduler, train_loader, val_loader, ep
 
         # Get vector mask
         rendered_noise = torch.mean(rendered, dim=1, keepdim=True) > 0.0
-        vector = torch.zeros_like(rendered_noise, dtype=img.dtype).cuda()
+        vector = torch.zeros_like(rendered_noise, dtype=img.dtype).cuda(args.gpu)
         vector[rendered_noise] = 1.0
 
         # Synthesize background
@@ -131,8 +131,8 @@ def validate(models, val_loader, epoch, args):
         
         for i, (occluded, lmk) in enumerate(val_loader):
             print('\rval %d...' % (i+1), end='')
-            occluded = Variable(occluded.type(torch.cuda.FloatTensor)).cuda()
-            lmk = Variable(lmk.type(torch.cuda.FloatTensor)).cuda()
+            occluded = Variable(occluded.type(torch.cuda.FloatTensor)).cuda(args.gpu)
+            lmk = Variable(lmk.type(torch.cuda.FloatTensor)).cuda(args.gpu)
             coef = models['3D'].regress_3dmm(occluded[:,[2,1,0],...])
             _, landmark = models['3D'].reconstruct(coef, test=True)
             align_error += torch.mean(torch.abs(landmark - lmk))
@@ -195,8 +195,8 @@ def main_worker(gpu, ngpus_per_node, args):
     torch.cuda.set_device(args.gpu)
 
     # Load models
-    estimator3d = Estimator3D(is_cuda=True, batch_size=args.batch_size, model_path=args.checkpoint, test=False, back_white=False, device_id=args.gpu)
-    estimator3d.regressor.cuda(args.gpu)
+    estimator3d = Estimator3D(is_cuda=True, batch_size=args.batch_size, model_path=args.checkpoint, test=False, back_white=False, cuda_id=args.gpu)
+    # estimator3d.regressor.cuda(args.gpu)
     parsing_net = BiSeNet(n_classes=19)
     parsing_net.cuda(args.gpu)
     parsing_net.load_state_dict(torch.load('faceParsing/model_final_diss.pth', map_location='cuda:'+str(args.gpu)))
@@ -205,13 +205,15 @@ def main_worker(gpu, ngpus_per_node, args):
     face_encoder.load_state_dict(torch.load('saved_models/face_res_50.pth', map_location='cuda:'+str(args.gpu)))
     face_encoder.cuda(args.gpu)
     face_encoder.eval()
+    print('All models were loaded')
 
     args.batch_size = int(args.batch_size / ngpus_per_node)
     args.workers = int(args.workers / ngpus_per_node)
 
-    estimator3d.regressor = DDP(estimator3d.regressor, device_ids=[args.gpu], broadcast_buffers=False, find_unused_parameters=True)
-    parsing_net = DDP(parsing_net, device_ids=[args.gpu], broadcast_buffers=False, find_unused_parameters=True)
-    face_encoder = DDP(face_encoder, device_ids=[args.gpu], broadcast_buffers=False, find_unused_parameters=True)
+    if False:
+        estimator3d.regressor = DDP(estimator3d.regressor, device_ids=[args.gpu], broadcast_buffers=False, find_unused_parameters=True)
+        parsing_net = DDP(parsing_net, device_ids=[args.gpu], broadcast_buffers=False, find_unused_parameters=True)
+        face_encoder = DDP(face_encoder, device_ids=[args.gpu], broadcast_buffers=False, find_unused_parameters=True)
     
     models = {}
     models['3D'] = estimator3d
@@ -271,15 +273,15 @@ if __name__=='__main__':
     parser.add_argument('--checkpoint', default=None, type=str, help='path to resume checkpoint')
 
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N')
-    parser.add_argument('-j', '--workers', default=8, type=int, metavar='N',
+    parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')
     parser.add_argument('--epochs', default=50, type=int, metavar='N', help='number of total epochs to run')
     parser.add_argument('--val_iters', default=5000, type=int, metavar='N')
                         
-    parser.add_argument('-b', '--batch-size', default=64, type=int, metavar='N')
+    parser.add_argument('-b', '--batch-size', default=80, type=int, metavar='N')
     parser.add_argument('--lr', '--learning-rate', default=1e-5, type=float,
                         metavar='LR', help='initial learning rate', dest='lr')
-    parser.add_argument('--world-size', default=1, type=int,
+    parser.add_argument('--world-size', default=2, type=int,
                     help='number of nodes for distributed training')
     parser.add_argument('--rank', default=0, type=int,
                         help='node rank for distributed training')

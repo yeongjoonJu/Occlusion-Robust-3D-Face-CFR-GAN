@@ -20,15 +20,15 @@ class FirstStageDataset(Dataset):
             transforms.ToTensor()
         ])
         self.color_aug = transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3)
-
-        self.occ_list = glob.glob(occ_path+'/*.jpg')
-        print("The number of data: {}".format(len(self.occ_list)))
+        print('Load data list')
+        self.img_list = glob.glob(img_path+'/*.jpg')
+        print("The number of data: {}".format(len(self.img_list)))
 
     def __len__(self):
-        return len(self.occ_list)
+        return len(self.img_list)
 
     def __rmul__(self, v):
-        self.occ_list = v * self.occ_list
+        self.img_list = v * self.img_list
         return self
     
     def get_rot_mat(self, angle):
@@ -40,20 +40,23 @@ class FirstStageDataset(Dataset):
                              [torch.sin(angle), torch.cos(angle), 0]])
     
     def __getitem__(self, index):
-        filename = os.path.basename(self.occ_list[index])
-        occluded = Image.open(self.occ_list[index]).convert('RGB')
-        img = Image.open(os.path.join(self.img_path, filename)).convert('RGB')
+        filename = os.path.basename(self.img_list[index])
+        img = Image.open(self.img_list[index]).convert('RGB')
+        if os.path.exists(os.path.join(self.occ_path, filename)):
+            # Non-occluded augmentation
+            if not self.test and torch.rand(1) < 0.5:
+                occluded = img.copy()
+            else:
+                occluded = Image.open(os.path.join(self.occ_path, filename)).convert('RGB')
+        else:
+            occluded = img.copy()
         lmk = np.load(os.path.join(self.lmk_path, filename[:-3]+'npy'))
         lmk = lmk[:,:2]
-
-        # Non-occluded augmentation
-        if not self.test and torch.rand(1) < 0.5:
-            occluded = img.copy()
 
         # Flags to prevent from 3DDFAv2 error propagation
         flag = torch.ones(1)
         if self.flag is not None and filename[:len(self.flag)] == self.flag:
-            flag = flag * 0.7
+            flag = flag * 0.8
 
         # Brightness, contrast, saturation augmentation
         if torch.rand(1) < 0.5:

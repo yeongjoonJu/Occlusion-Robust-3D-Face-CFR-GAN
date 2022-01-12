@@ -63,7 +63,7 @@ class Estimator3D(object):
         
         if is_cuda:
             device = torch.device('cuda:'+str(cuda_id))
-            self.tri = self.tri.cuda()
+            self.tri = self.tri.cuda(cuda_id)
         else:
             device = torch.device('cpu')
 
@@ -90,7 +90,7 @@ class Estimator3D(object):
 
     def load_3dmm_models(self, model_path, test=True):
         # read face model
-        face_model = BFM('mmRegressor/BFM/BFM_model_80.mat')
+        face_model = BFM('mmRegressor/BFM/BFM_model_80.mat', self.cuda_id)
 
         self.face_model = face_model
 
@@ -106,7 +106,7 @@ class Estimator3D(object):
         if test:
             regressor.eval()
         if self.is_cuda:
-            regressor = regressor.cuda()
+            regressor = regressor.cuda(self.cuda_id)
         if test:
             for param in regressor.parameters():
                 param.requires_grad = False
@@ -129,7 +129,7 @@ class Estimator3D(object):
         rendered = self.phong_renderer(meshes_world=mesh, R=self.R, T=self.T)
         rendered = torch.clamp(rendered, 0.0, 1.0)
 
-        landmarks_2d = torch.zeros_like(face_projection).cuda()
+        landmarks_2d = torch.zeros_like(face_projection).cuda(self.cuda_id)
         landmarks_2d[...,0] = torch.clamp(face_projection[...,0].clone(), 0, self.render_size-1)
         landmarks_2d[...,1] = torch.clamp(face_projection[...,1].clone(), 0, self.render_size-1)
         landmarks_2d[...,1] = self.render_size - landmarks_2d[...,1].clone() - 1
