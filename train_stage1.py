@@ -39,7 +39,7 @@ def train(models, criterions, optimizer, scheduler, train_loader, val_loader, ep
     mean_f = torch.FloatTensor([0.5, 0.5, 0.5]).cuda(args.gpu).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
     std_f = torch.FloatTensor([0.5, 0.5, 0.5]).cuda(args.gpu).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
 
-    for i, (occluded, img, lmk, flag) in tqdm(enumerate(train_loader)):
+    for i, (occluded, img, lmk, flag) in enumerate(train_loader):
         optimizer.zero_grad()
         
         # Configure model input
@@ -96,7 +96,7 @@ def train(models, criterions, optimizer, scheduler, train_loader, val_loader, ep
         optimizer.step()
         
         # logging
-        if torch.distributed.get_rank() == 0:
+        if not args.multiprocessing_distributed or torch.distributed.get_rank() == 0:
             scheduler.step()
             total_iteration = len(train_loader) * epoch + i
             logger.log_training(coef_loss.item(), rec_loss.item(), reg_loss.item(), align_loss.item(), id_loss.item(), total_iteration)
@@ -160,9 +160,7 @@ def main(args):
 
     if args.dist_url == "env://" and args.world_size == -1:
         args.world_size = int(os.environ["WORLD_SIZE"])
-
-    args.distributed = args.world_size > 1 or args.multiprocessing_distributed
-    
+        
     ngpus_per_node = torch.cuda.device_count()
     if args.multiprocessing_distributed:
         # Since we have ngpus_per_node processes per node, the total world_size
@@ -181,7 +179,7 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
     
-    if args.distributed:
+    if args.multiprocessing_distributed:
         if args.dist_url == "env://" and args.rank == -1:
             args.rank = int(os.environ["RANK"])
         if args.multiprocessing_distributed:
@@ -207,10 +205,9 @@ def main_worker(gpu, ngpus_per_node, args):
     face_encoder.eval()
     print('All models were loaded')
 
-    args.batch_size = int(args.batch_size / ngpus_per_node)
-    args.workers = int(args.workers / ngpus_per_node)
-
-    if False:
+    if args.multiprocessing_distributed:
+        args.batch_size = int(args.batch_size / ngpus_per_node)
+        args.workers = int(args.workers / ngpus_per_node)
         estimator3d.regressor = DDP(estimator3d.regressor, device_ids=[args.gpu], broadcast_buffers=False, find_unused_parameters=True)
         parsing_net = DDP(parsing_net, device_ids=[args.gpu], broadcast_buffers=False, find_unused_parameters=True)
         face_encoder = DDP(face_encoder, device_ids=[args.gpu], broadcast_buffers=False, find_unused_parameters=True)
@@ -232,7 +229,7 @@ def main_worker(gpu, ngpus_per_node, args):
                                 img_path=args.train_data_path + '/ori_img', \
                                 lmk_path=args.train_data_path + '/landmarks')
 
-    if args.distributed:
+    if args.multiprocessing_distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
     else:
         train_sampler = None
@@ -254,11 +251,11 @@ def main_worker(gpu, ngpus_per_node, args):
     print(len(train_loader))
 
     for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
+        if args.multiprocessing_distributed:
             train_sampler.set_epoch(epoch)
         train(models, criterions, optimizer, scheduler, train_loader, val_loader, epoch, args)
         
-        if torch.distributed.get_rank() == 0:
+        if not args.multiprocessing_distributed or torch.distributed.get_rank() == 0:
             error = validate(models, val_loader, epoch, args)
             logger.log_validation(error, epoch)
             torch.save(estimator3d.regressor.module.state_dict(), args.save_path+"/reg_ep%d_%.4f_stage1.pth" % (epoch+1, error))
@@ -278,7 +275,7 @@ if __name__=='__main__':
     parser.add_argument('--epochs', default=50, type=int, metavar='N', help='number of total epochs to run')
     parser.add_argument('--val_iters', default=5000, type=int, metavar='N')
                         
-    parser.add_argument('-b', '--batch-size', default=80, type=int, metavar='N')
+    parser.add_argument('-b', '--batch-size', default=48, type=int, metavar='N')
     parser.add_argument('--lr', '--learning-rate', default=1e-5, type=float,
                         metavar='LR', help='initial learning rate', dest='lr')
     parser.add_argument('--world-size', default=2, type=int,
@@ -291,9 +288,9 @@ if __name__=='__main__':
                         help='distributed backend')
     parser.add_argument('--seed', default=None, type=int,
                         help='seed for initializing training. ')
-    parser.add_argument('--gpu', default=None, type=int,
+    parser.add_argument('--gpu', default=0, type=int,
                         help='GPU id to use.')
-    parser.add_argument('--multiprocessing-distributed', action='store_true', default=True,
+    parser.add_argument('--multiprocessing-distributed', action='store_true',
                         help='Use multi-processing distributed training to launch '
                             'N processes per node, which has N GPUs. This is the '
                             'fastest way to use PyTorch for either single node or '
