@@ -89,9 +89,9 @@ def train(models, criterions, optimizer, scheduler, train_loader, val_loader, ep
 
         # Reconstruction loss
         rec_loss = torch.sum(torch.abs(img - rendered), dim=1)*mask
-        rec_loss = torch.sum(rec_loss) / torch.sum(mask)   
+        rec_loss = torch.sum(rec_loss) / torch.sum(mask)
 
-        total_loss = coef_loss*1e-4 + rec_loss*0.01 + reg_loss*0.25 + align_loss*0.007 + gamma_loss*10.0 + id_loss*0.15
+        total_loss = coef_loss*1e-4 + rec_loss*0.01 + reg_loss*1e-5 + align_loss*0.007 + gamma_loss*10.0 + id_loss*0.2
         total_loss.backward()
         optimizer.step()
         
@@ -100,7 +100,7 @@ def train(models, criterions, optimizer, scheduler, train_loader, val_loader, ep
             scheduler.step()
             total_iteration = len(train_loader) * epoch + i
             logger.log_training(coef_loss.item(), rec_loss.item(), reg_loss.item(), align_loss.item(), id_loss.item(), total_iteration)
-            if total_iteration % 250 == 0:
+            if total_iteration % 200 == 0:
                 rendered_grid = make_grid(rendered, nrow=args.batch_size//2, normalize=True)
                 lmk = lmk.type(torch.LongTensor)
                 landmark = landmark.type(torch.LongTensor)
@@ -122,7 +122,7 @@ def train(models, criterions, optimizer, scheduler, train_loader, val_loader, ep
             if i!=0 and total_iteration % args.val_iters == 0:
                 error = validate(models, val_loader, epoch, args)
                 logger.log_validation(error, epoch)
-                torch.save(models['3D'].regressor.module.state_dict(), args.save_path+"/reg_it%d_%.4f_stage1.pth" % (total_iteration, error))
+                torch.save(models['3D'].regressor.state_dict(), args.save_path+"/reg_it%d_%.4f_stage1.pth" % (total_iteration, error))
         
 
 def validate(models, val_loader, epoch, args):
@@ -239,7 +239,9 @@ def main_worker(gpu, ngpus_per_node, args):
         shuffle = (train_sampler is None), num_workers=args.workers, pin_memory=True, sampler=train_sampler, drop_last=True
     )
 
-    val_dataset = LP_Dataset(args.val_data_path+'/occluded', args.val_data_path+'/landmarks')
+    val_dataset = FirstStageDataset(occ_path=args.val_data_path + '/occluded', \
+                                    img_path=args.val_data_path + '/ori_img', \
+                                    lmk_path=args.val_data_path + '/landmarks', test=True)
     val_loader = DataLoader(
         val_dataset, batch_size = args.batch_size, shuffle = False,
         drop_last=True, num_workers=args.workers, pin_memory=True
@@ -258,7 +260,7 @@ def main_worker(gpu, ngpus_per_node, args):
         if not args.multiprocessing_distributed or torch.distributed.get_rank() == 0:
             error = validate(models, val_loader, epoch, args)
             logger.log_validation(error, epoch)
-            torch.save(estimator3d.regressor.module.state_dict(), args.save_path+"/reg_ep%d_%.4f_stage1.pth" % (epoch+1, error))
+            torch.save(estimator3d.regressor.state_dict(), args.save_path+"/reg_ep%d_%.4f_stage1.pth" % (epoch+1, error))
 
 
 if __name__=='__main__':
@@ -276,7 +278,7 @@ if __name__=='__main__':
     parser.add_argument('--val_iters', default=5000, type=int, metavar='N')
                         
     parser.add_argument('-b', '--batch-size', default=48, type=int, metavar='N')
-    parser.add_argument('--lr', '--learning-rate', default=1e-5, type=float,
+    parser.add_argument('--lr', '--learning-rate', default=2e-6, type=float,
                         metavar='LR', help='initial learning rate', dest='lr')
     parser.add_argument('--world-size', default=2, type=int,
                     help='number of nodes for distributed training')
