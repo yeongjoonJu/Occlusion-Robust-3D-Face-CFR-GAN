@@ -236,3 +236,29 @@ class Estimator3D(object):
             input_img = input_img.type(torch.FloatTensor).cuda(self.cuda_id)
         
         return input_img
+
+
+    def reconstruct2obj(self, img_list, save_path):
+        input_imgs = []
+        for filename in img_list:
+            img = Image.open(filename)
+            lm = self.estimate_five_landmarks(img)
+            img, _ = Preprocess(img, lm, self.lm3D, render_size=self.render_size)
+            img = img[0].copy()
+            
+            img = self.to_tensor(img)
+            input_imgs.append(img.unsqueeze(0))
+            
+        input_imgs = torch.cat(input_imgs)
+        if self.is_cuda:
+            input_imgs = input_imgs.type(torch.FloatTensor).cuda(self.cuda_id)
+        
+        coef = self.regress_3dmm(input_imgs)
+
+        # reconstruct 3D face with output coefficients and face model
+        face_shape,_,face_color,tri,_,_,_ = Reconstruction(coef, self.face_model)
+        
+        for i, filename in enumerate(img_list):
+            shape = face_shape.cpu()[i]
+            color = face_color.cpu()[i]
+            save_obj(os.path.join(save_path,os.path.basename(filename)[:-4]+'_mesh.obj'),shape,tri+1,np.clip(color,0,1))
