@@ -100,7 +100,7 @@ def train(models, criterions, optimizer, scheduler, train_loader, val_loader, ep
             scheduler.step()
             total_iteration = len(train_loader) * epoch + i
             logger.log_training(coef_loss.item(), rec_loss.item(), reg_loss.item(), align_loss.item(), id_loss.item(), total_iteration)
-            if total_iteration % 200 == 0:
+            if total_iteration % 250 == 0:
                 rendered_grid = make_grid(rendered, nrow=args.batch_size//2, normalize=True)
                 lmk = lmk.type(torch.LongTensor)
                 landmark = landmark.type(torch.LongTensor)

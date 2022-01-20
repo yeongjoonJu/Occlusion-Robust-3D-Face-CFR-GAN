@@ -53,10 +53,14 @@ class FirstStageDataset(Dataset):
         lmk = np.load(os.path.join(self.lmk_path, filename[:-3]+'npy'))
         lmk = lmk[:,:2]
 
+        if self.test:
+            occluded = self.transform(occluded)
+            return occluded, lmk
+
         # Flags to prevent from 3DDFAv2 error propagation
         flag = torch.ones(1)
         if self.flag is not None and filename[:len(self.flag)] == self.flag:
-            flag = flag * 0.8
+            flag = flag * 0.9
 
         # Brightness, contrast, saturation augmentation
         if torch.rand(1) < 0.5:

@@ -12,6 +12,7 @@ There is no obvious difference between these two splits.
 import os.path as osp
 import numpy as np
 from math import sqrt
+import argparse
 
 d = 'test.configs'
 
@@ -104,12 +105,13 @@ def calc_nme(pts68_fit_all, option='ori'):
     return nme_list
 
 
-def main():
-    pts68_fit_all = np.load('evaluation/AFLW2000_pts68_ours_occluded.npy')
+def main(filename):
+    pts68_fit_all = np.load(filename)
     pts68_fit_all = np.transpose(pts68_fit_all, (0,2,1))
     
     ana(calc_nme(pts68_fit_all))
 
 
 if __name__ == '__main__':
-    main()
+    estimated_landmark_filename = 'evaluation/AFLW2000_pts68_ours.npy'
+    main(estimated_landmark_filename)

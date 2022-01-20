@@ -37,25 +37,26 @@ def align(img_list):
     print(boxes.shape)
     np.save('evaluation/aligned_params.npy', boxes)
 
-   
+
 if __name__=='__main__':
-    ## First, execute align function for AFLW2000!
+    ## First, execute align function for original AFLW2000!
     parser = argparse.ArgumentParser()
-    parser.add_argument('--img_path', type=str, help='path of AFLW2000')
+    parser.add_argument('--img_path', type=str, help='path of !aligned! AFLW2000')
     parser.add_argument('--checkpoint', default=None, type=str, help='path of a checkpoint to evaluate')
     parser.add_argument('--save_path', type=str, default='evaluation/AFLW2000_pts68.npy')
     parser.add_argument('--gpu_id', default=0, type=int)
     args = parser.parse_args()
 
-    model = Estimator3D(is_cuda=True, batch_size=1, model_path=args.checkpoint, test=True, back_white=False, device_id=args.gpu_id)
+    model = Estimator3D(is_cuda=True, batch_size=1, model_path=args.checkpoint, test=True, back_white=False, cuda_id=args.gpu_id)
     img_list = glob.glob(args.img_path+'/*.jpg')
     img_list = sorted(img_list)
 
     aligned_params = np.load('evaluation/aligned_params.npy', allow_pickle=True)
 
     estimated_lmks = None
+    n_imgs = len(img_list)
     for i, img_name in enumerate(img_list):
-        print('%d / 2000' % (i+1))
+        print('%d / %d' % (i+1, n_imgs))
         img_ori = cv2.imread(img_name)
         img = torch.from_numpy(img_ori).permute(2,0,1).unsqueeze(0)
 
@@ -68,7 +69,7 @@ if __name__=='__main__':
         img = img.cuda(args.gpu_id)
 
         coef = model.regress_3dmm(img)
-        _, lmk = model.reconstruct_and_render(coef)
+        _, lmk = model.render_and_estimate_landmarks(coef)
 
         lmk = lmk.cpu().numpy()[0]
         box = aligned_params[i]

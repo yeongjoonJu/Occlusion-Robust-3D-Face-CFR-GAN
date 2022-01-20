@@ -262,3 +262,18 @@ class Estimator3D(object):
             shape = face_shape.cpu()[i]
             color = face_color.cpu()[i]
             save_obj(os.path.join(save_path,os.path.basename(filename)[:-4]+'_mesh.obj'),shape,tri+1,np.clip(color,0,1))
+
+    
+    def render_and_estimate_landmarks(self, coef):
+        face_shape, _, face_color, _,face_projection,_,_ = Reconstruction(coef,self.face_model)
+        verts_rgb = face_color[...,[2,1,0]]
+        mesh = Meshes(verts=face_shape, faces=self.tri[:face_shape.shape[0],...], textures=Textures(verts_rgb=verts_rgb))
+
+        rendered = self.phong_renderer(meshes_world=mesh, R=self.R, T=self.T)
+        rendered = torch.clamp(rendered, 0.0, 1.0)
+        landmarks_2d = torch.zeros_like(face_projection).cuda(self.cuda_id)
+        landmarks_2d[...,0] = torch.clamp(face_projection[...,0].clone(), 0, self.render_size-1)
+        landmarks_2d[...,1] = torch.clamp(face_projection[...,1].clone(), 0, self.render_size-1)
+        landmarks_2d[...,1] = self.render_size - landmarks_2d[...,1].clone() - 1
+        landmarks_2d = landmarks_2d[:,self.face_model.keypoints,:]
+        return rendered, landmarks_2d

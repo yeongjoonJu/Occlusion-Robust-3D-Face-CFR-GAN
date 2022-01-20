@@ -178,7 +178,7 @@ class ResNet(nn.Module):
         
         outs=[]
         for fc in self.arr_fc:
-            outs.append( fc(x).view(n_b, -1) )
+            outs.append( fc(x).reshape(n_b, -1) )
 
         if fm:
             return [x1, x2, x3, x, torch.cat(outs,1)]
