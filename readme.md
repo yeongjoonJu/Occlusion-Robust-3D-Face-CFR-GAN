@@ -122,4 +122,30 @@ tensorboard --logdir=logs_stage2 --bind_all --reload_multifile True
 python evaluation/benchmark_nme_aflw_2000.py
 ~~~
 
-If you would like to evaluate your results, please refer `evaluation/estimate_aflw2000.py`
+If you would like to evaluate your results, please refer `estimate_aflw2000.py`
+
+## Citation
+
+~~~
+@InProceedings{Ju_2022_WACV,
+    author    = {Ju, Yeong-Joon and Lee, Gun-Hee and Hong, Jung-Ho and Lee, Seong-Whan},
+    title     = {Complete Face Recovery GAN: Unsupervised Joint Face Rotation and De-Occlusion From a Single-View Image},
+    booktitle = {Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
+    month     = {January},
+    year      = {2022},
+    pages     = {3711-3721}
+}
+
+@inproceedings{deng2019accurate,
+    title={Accurate 3D Face Reconstruction with Weakly-Supervised Learning: From Single Image to Image Set},
+    author={Yu Deng and Jiaolong Yang and Sicheng Xu and Dong Chen and Yunde Jia and Xin Tong},
+    booktitle={IEEE Computer Vision and Pattern Recognition Workshops},
+    year={2019}
+}
+~~~
+
+## Acknowledgement
+
+~~~
+This work was supported by Institute of Information & communications Technology Planning Evaluation (IITP) grant funded by the Korea government(MSIT) (No. 2019-0-00079, Artificial Intelligence Graduate School Program(Korea University))
+~~~
