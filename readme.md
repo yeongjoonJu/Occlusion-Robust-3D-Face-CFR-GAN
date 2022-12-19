@@ -30,11 +30,11 @@ First row is baseline results and second row is our results.
 
 + [Basel Face Model 2009 (BFM09)](https://faces.dmi.unibas.ch/bfm/main.php?nav=1-0&id=basel_face_model) and [Expression Basis (transferred from Facewarehouse by Guo et al.)](https://github.com/Juyong/3DFace). The original BFM09 model does not handle expression variations so extra expression basis are needed.
   
-  + However, we made [BFM_model_80.mat](https://drive.google.com/file/d/1Y00xRDLKhx3oWJasdy-NdBp-wSh_uW0C/view?usp=sharing) (Dimension of id coef and tex coef is 80). Download and move it to mmRegressor/BFM folder.
+  + However, we made [BFM_model_80.mat](https://koreaoffice-my.sharepoint.com/:u:/g/personal/yj_ju_korea_ac_kr/EXz8RWQEwalCrRLTHEfnQfEBXQS9VwSWADojypNOQpQYtQ?e=3HiRiR) (Dimension of id coef and tex coef is 80). Download and move it to mmRegressor/BFM folder.
 
 ## Inference
 
-+ Download [our trained weights](https://drive.google.com/file/d/1nX70o-IMWNU5RZ-fVN98S-eLU6ihJ65L/view?usp=sharing) to saved_models folder
++ Download [our trained weights](https://koreaoffice-my.sharepoint.com/:u:/g/personal/yj_ju_korea_ac_kr/EW2RMX2ZSJBKgOJ3oSAadWwBxfD2YZH7Dt0Aw8ZCYjBZqQ?e=VMPu8q) to saved_models folder
 
 For alignment, You can use MTCNN or RetinaFace but we recommend to use [RetinaFace](https://github.com/biubug6/Pytorch_Retinaface).
 
@@ -83,9 +83,9 @@ You can use MTCNN or RetinaFace
 
 Instead of skin mask, we use BiseNet, face parsing network. The codes and weights were modified and re-trained from [this code](https://github.com/zllrunning/face-parsing.PyTorch). <u>If you want to get more clear textures, use a skin detector of baseline.</u>
 
-+ Download [weights of face parsing networks](https://drive.google.com/file/d/11yOlWD1fnrzJ8yAYIJJT96VFsRzSpRdh/view?usp=sharing) to faceParsing folder.
-+ Download [weights of baseline 3D networks](https://drive.google.com/file/d/1H38pe61Zqz-7zVkYDrPQkfcosmhZp23n/view?usp=sharing) to mmRegressor/network folder.
-+ Download [weights of face recognition networks](https://drive.google.com/file/d/1zkadw03OCxAbwJMTmP8436wpLrrK7ht9/view?usp=sharing) to saved_models folder. This network weight was specifically trained for stage1-training.
++ Download [weights of face parsing networks](https://koreaoffice-my.sharepoint.com/:u:/g/personal/yj_ju_korea_ac_kr/ESKaheHhK3hIo_vUttKAZ5UBxKUSOKS1iEZLB01P5b226w?e=LcWfT8) to faceParsing folder.
++ Download [weights of baseline 3D networks](https://koreaoffice-my.sharepoint.com/:u:/g/personal/yj_ju_korea_ac_kr/ET8w3i6yv7tLsbaz37Kh74kB2YQJ9KEjVqwVlolUy4nZNg?e=Hi6fvb) to mmRegressor/network folder.
++ Download [weights of face recognition networks](https://koreaoffice-my.sharepoint.com/:u:/g/personal/yj_ju_korea_ac_kr/EaRL_dzGg-9BgVEhpyvdPxkBTyXqOip1aZtAlpKC5tiQEQ?e=FN7JgB) to saved_models folder. This network weight was specifically trained for stage1-training.
 
 **Train occlusion-robust 3D face model**
 
